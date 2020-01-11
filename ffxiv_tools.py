@@ -13,6 +13,29 @@ def set_arch_keys():
 
     return arch_keys
 
+def get_xivlauncher_folder():
+    arch_keys = set_arch_keys()
+
+    for arch_key in arch_keys:
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", 0, winreg.KEY_READ | arch_key)
+
+        for i in range(0, winreg.QueryInfoKey(key)[0]):
+            skey_name = winreg.EnumKey(key, i)
+            skey = winreg.OpenKey(key, skey_name)
+
+            try:
+                display_name = winreg.QueryValueEx(skey, 'DisplayName')[0].lower()
+
+                if display_name == "XIVLauncher".lower():
+                    install_location = winreg.QueryValueEx(skey, 'InstallLocation')[0]
+                    skey.Close()
+
+                    return install_location
+            except OSError:
+                pass
+            finally:
+                skey.Close()
+
 def get_installation_folder():
     arch_keys = set_arch_keys()
 

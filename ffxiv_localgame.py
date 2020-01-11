@@ -23,14 +23,22 @@ class FFXIVLocalGame(object):
 
 def get_game_instances() -> List[FFXIVLocalGame]:
     result = list()
-    install_folder = ffxiv_tools.get_installation_folder()
 
+    # Try to use XIVLauncher first if it's installed
+    install_folder = ffxiv_tools.get_xivlauncher_folder()
     if (
-        (install_folder is None) or
-        (not os.path.exists(install_folder))
+        install_folder is not None and
+        os.path.exists(install_folder)
     ):
-        return result
+        result.append(FFXIVLocalGame(install_folder + "\\", "xivlauncher.exe"))
 
-    result.append(FFXIVLocalGame(install_folder + "\\boot\\", "ffxivboot.exe"))
-        
+    # Fallback to vanilla launcher
+    if len(result) == 0:
+        install_folder = ffxiv_tools.get_installation_folder()
+        if (
+                install_folder is not None and
+                os.path.exists(install_folder)
+        ):
+            result.append(FFXIVLocalGame(install_folder + "\\boot\\", "ffxivboot.exe"))
+
     return result
