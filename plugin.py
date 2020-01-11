@@ -91,48 +91,53 @@ class FinalFantasyXIVPlugin(Plugin):
     async def get_local_games(self):
         self._game_instances = ffxiv_localgame.get_game_instances()
         
-        if len(self._game_instances) == 0:
+        if len([x for x in self._game_instances if x.id == 'final_fantasy_xiv_shadowbringers']) == 0:
             self._last_state = LocalGameState.None_
 
             return []
 
         self._last_state = LocalGameState.Installed
 
-        return [ LocalGame(game_id='final_fantasy_xiv_shadowbringers', local_game_state = self._last_state)]
+        return [ LocalGame(x.id, local_game_state = self._last_state) for x in self._game_instances]
 
     async def get_owned_games(self):
+        games = list()
         dlcs = list()
         install_folder = ffxiv_tools.get_installation_folder()
         license_type = LicenseType.SinglePurchase
 
-        if (
-            (install_folder is None) or
-            (not os.path.exists(install_folder))
-        ):
-            return [ Game(game_id = 'final_fantasy_xiv_shadowbringers', game_title = 'Final Fantasy XIV: A Realm Reborn', dlcs = dlcs, license_info = LicenseInfo(license_type = license_type)) ]
+        if install_folder is not None:
+            dlc_folder = install_folder + "\\game\\sqpack\\"
+            dlclist = [ item for item in os.listdir(dlc_folder) if os.path.isdir(os.path.join(dlc_folder, item)) ]
 
-        dlc_folder = install_folder + "\\game\\sqpack\\"
-        dlclist = [ item for item in os.listdir(dlc_folder) if os.path.isdir(os.path.join(dlc_folder, item)) ]
+            for dlc in dlclist:
+                if dlc == "ffxiv":
+                    continue
 
-        for dlc in dlclist:
-            if dlc == "ffxiv":
-                continue
+                if dlc == "ex1":
+                    dlc_id = "Heavensward"
+                    dlc_name = "Final Fantasy XIV: Heavensward"
 
-            if dlc == "ex1":
-                dlc_id = "Heavensward"
-                dlc_name = "Final Fantasy XIV: Heavensward"
+                if dlc == "ex2":
+                    dlc_id = "Stormblood"
+                    dlc_name = "Final Fantasy XIV: Stormblood"
 
-            if dlc == "ex2":
-                dlc_id = "Stormblood"
-                dlc_name = "Final Fantasy XIV: Stormblood"
-
-            if dlc == "ex3":
-                dlc_id = "Shadowbringers"
-                dlc_name = "Final Fantasy XIV: Shadowbringers"
+                if dlc == "ex3":
+                    dlc_id = "Shadowbringers"
+                    dlc_name = "Final Fantasy XIV: Shadowbringers"
 
             dlcs.append(Dlc(dlc_id = dlc_id, dlc_title = dlc_name, license_info = LicenseInfo(license_type = LicenseType.SinglePurchase)))
 
-        return [ Game(game_id = 'final_fantasy_xiv_shadowbringers', game_title = 'Final Fantasy XIV: A Realm Reborn', dlcs = dlcs, license_info = LicenseInfo(license_type = license_type)) ]
+        games.append(Game(game_id = 'final_fantasy_xiv_shadowbringers', game_title = 'Final Fantasy XIV: A Realm Reborn', dlcs = dlcs, license_info = LicenseInfo(license_type = license_type)))
+
+        xivlauncher_folder = ffxiv_tools.get_xivlauncher_folder()
+        if (
+            xivlauncher_folder is not None and
+            os.path.exists(install_folder)
+        ):
+            games.append(Game(game_id = 'xivlauncher', game_title = 'XIVLauncher', dlcs = dlcs, license_info = LicenseInfo(license_type = license_type)))
+
+        return games
 
     async def get_game_times(self):
         pass
@@ -150,24 +155,30 @@ class FinalFantasyXIVPlugin(Plugin):
         return friends
 
     async def launch_game(self, game_id):
-        if game_id != 'final_fantasy_xiv_shadowbringers':
+        if game_id not in ['final_fantasy_xiv_shadowbringers', 'xivlauncher']:
             return
 
-        self._game_instances[0].run_game()
+        [x for x in self._game_instances if x.id == game_id][0].run_game()
 
     async def install_game(self, game_id: str):
-        installer_path = self._ffxiv_api.get_installer()
+        if game_id == 'final_fantasy_xiv_shadowbringers':
+            installer_path = self._ffxiv_api.get_installer()
 
-        if (
-            (installer_path is None) or
-            (not os.path.exists(installer_path))
-        ):
+            if (
+                (installer_path is None) or
+                (not os.path.exists(installer_path))
+            ):
+                return
+
+            subprocess.Popen(installer_path, creationflags=0x00000008)
+        else:
             return
 
-        subprocess.Popen(installer_path, creationflags=0x00000008)
-
     async def uninstall_game(self, game_id: str):
-        self._game_instances[0].delete_game()
+        if game_id == 'final_fantasy_xiv_shadowbringers':
+            self._game_instances[0].delete_game()
+        else:
+            return
 
     async def get_unlocked_achievements(self, game_id: str, context) -> List[Achievement]:
         achievements = list()

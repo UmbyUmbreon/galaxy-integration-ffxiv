@@ -8,7 +8,8 @@ import ffxiv_tools
 from typing import List
 
 class FFXIVLocalGame(object):
-    def __init__(self, game_dir, game_executable):
+    def __init__(self, game_id, game_dir, game_executable):
+        self.id = game_id.lower()
         self._dir = game_dir.lower()
         self._executable = game_executable.lower()
 
@@ -24,21 +25,18 @@ class FFXIVLocalGame(object):
 def get_game_instances() -> List[FFXIVLocalGame]:
     result = list()
 
-    # Try to use XIVLauncher first if it's installed
-    install_folder = ffxiv_tools.get_xivlauncher_folder()
+    install_folder = ffxiv_tools.get_installation_folder()
     if (
-        install_folder is not None and
-        os.path.exists(install_folder)
+            install_folder is not None and
+            os.path.exists(install_folder)
     ):
-        result.append(FFXIVLocalGame(install_folder + "\\", "xivlauncher.exe"))
+        result.append(FFXIVLocalGame('final_fantasy_xiv_shadowbringers', install_folder + "\\boot\\", "ffxivboot.exe"))
 
-    # Fallback to vanilla launcher
-    if len(result) == 0:
-        install_folder = ffxiv_tools.get_installation_folder()
-        if (
-                install_folder is not None and
-                os.path.exists(install_folder)
-        ):
-            result.append(FFXIVLocalGame(install_folder + "\\boot\\", "ffxivboot.exe"))
+    xivlauncher_folder = ffxiv_tools.get_xivlauncher_folder()
+    if (
+        xivlauncher_folder is not None and
+        os.path.exists(xivlauncher_folder)
+    ):
+        result.append(FFXIVLocalGame('xivlauncher', xivlauncher_folder + "\\", "xivlauncher.exe"))
 
     return result
