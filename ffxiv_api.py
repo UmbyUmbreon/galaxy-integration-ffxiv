@@ -137,7 +137,7 @@ class FFXIVAPI(object):
     #
 
     def get_character_id(self) -> str:
-        return self._account_info['Character']['ID']
+        return str(self._account_info['Character']['ID'])
         
     def get_character(self) -> List[str]:
         return self._account_info['Character']
