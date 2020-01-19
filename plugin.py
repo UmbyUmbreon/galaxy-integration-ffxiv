@@ -156,6 +156,7 @@ class FinalFantasyXIVPlugin(Plugin):
 
         [x for x in self._game_instances if x.id == game_id][0].run_game()
         self.update_local_game_status(LocalGame(game_id, LocalGameState.Installed | LocalGameState.Running))
+        self._cached_game_statuses[game_id] = LocalGameState.Installed | LocalGameState.Running
 
     async def install_game(self, game_id: str):
         if game_id == 'final_fantasy_xiv_shadowbringers':
