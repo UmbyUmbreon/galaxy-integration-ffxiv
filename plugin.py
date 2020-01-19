@@ -194,7 +194,8 @@ class FinalFantasyXIVPlugin(Plugin):
             "ffxivlauncher64.exe",
             "ffxiv.exe",
             "ffxiv_dx11.exe",
-            "ffxivlauncher.exe"
+            "ffxivlauncher.exe",
+            "xivlauncher.exe"
         ]
 
         running = False
