@@ -53,8 +53,8 @@ class FinalFantasyXIVPlugin(Plugin):
 
             AUTH_PARAMS = {
                 "window_title": "Login to Final Fantasy XIV Lodestone",
-                "window_width": 640,
-                "window_height": 460,
+                "window_width": 700,
+                "window_height": 600,
                 "start_uri": self._ffxiv_api.auth_server_uri(),
                 "end_uri_regex": ".*finished"
             }

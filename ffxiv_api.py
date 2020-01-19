@@ -43,6 +43,8 @@ class FFXIVAuthorizationServer(BaseHTTPRequestHandler):
 
         if self.path == '/login':
             self.do_POST_login(post_data)
+        elif self.path == "/login_charsearch":
+            self.do_POST_login_charsearch(post_data)
         else:
             self.send_response(302)
             self.send_header('Location','/404')
@@ -50,14 +52,9 @@ class FFXIVAuthorizationServer(BaseHTTPRequestHandler):
 
     def do_POST_login(self, data):
 
-        data_valid = True
-
-        if b'character_id' not in data:
-            data_valid = False
-
         auth_result = False
 
-        if data_valid:
+        if b'character_id' in data:
             try:
                 auth_result = self.backend.do_auth_character(data[b'character_id'][0].decode("utf-8"))
             except Exception:
@@ -70,6 +67,29 @@ class FFXIVAuthorizationServer(BaseHTTPRequestHandler):
             self.send_header('Location','/finished')
         else:
             self.send_header('Location','/login_failed')
+
+        self.end_headers()
+
+    def do_POST_login_charsearch(self, data):
+
+        auth_result = False
+
+        if b'character_name' in data and b'server' in data:
+            try:
+                auth_result = self.backend.do_auth_character_by_name_and_server(
+                    data[b'character_name'][0].decode('utf-8'),
+                    data[b'server'][0].decode('utf-8')
+                )
+            except Exception:
+                logging.exception("Error on doing auth")
+
+        self.send_response(302)
+        self.send_header('Content-type', "text/html")
+
+        if auth_result == FFXIVAuthorizationResult.FINISHED:
+            self.send_header('Location', '/finished')
+        else:
+            self.send_header('Location', '/login_failed')
 
         self.end_headers()
 
@@ -110,7 +130,6 @@ class FFXIVAPI(object):
     def __init__(self):
         self._server_thread = None
         self._server_object = None
-        self._character_id = None
         self._account_info = None
 
     # 
@@ -118,7 +137,7 @@ class FFXIVAPI(object):
     #
 
     def get_character_id(self) -> str:
-        return self._character_id
+        return self._account_info['Character']['ID']
         
     def get_character(self) -> List[str]:
         return self._account_info['Character']
@@ -187,10 +206,29 @@ class FFXIVAPI(object):
 
             return FFXIVAuthorizationResult.FAILED
 
-        self._character_id = character_id
         self._account_info = account_info
 
         return FFXIVAuthorizationResult.FINISHED
+
+    def do_auth_character_by_name_and_server(self, name : str, server : str):
+        (status_code, account_info) = self.__api_get_character_by_name_and_server(name, server)
+
+        if account_info is None:
+            return FFXIVAuthorizationResult.FAILED
+
+        if status_code != 200:
+            if 'Error' not in account_info:
+                return FFXIVAuthorizationResult.FAILED
+
+            if account_info['Ex'] == 'Lodestone\\Exceptions\\LodestoneNotFoundException':
+                return FFXIVAuthorizationResult.FAILED_INVALID_CHARACTER_ID
+
+            return FFXIVAuthorizationResult.FAILED
+
+        self._account_info = account_info
+
+        return FFXIVAuthorizationResult.FINISHED
+
 
     def __api_get_account_info(self, character_id : str):
         resp = requests.get(self.API_DOMAIN + self.API_URL_CHARACTER + character_id, params={'data': 'AC,FR'})
@@ -202,6 +240,19 @@ class FFXIVAPI(object):
             logging.error('ffxivapi/__api_get_account_info: %s' % resp.text)
 
         return (resp.status_code, result)
+
+    def __api_get_character_by_name_and_server(self, name :str, server: str):
+        resp = requests.get(f"{self.API_DOMAIN}{self.API_URL_CHARACTER}search", params={'name': name, 'server': server})
+
+        try:
+            result = json.loads(resp.text)
+            characters = result.get('Results', [])
+            if len(characters) >= 1:
+                return self.__api_get_account_info(str(characters[0].get('ID', '')))
+            else:
+                return None
+        except Exception:
+            logging.error('ffxivapi/__api_get_character_by_name_and_server: %s' % resp.text)
 
     def get_installer(self):
         installer_path = os.path.join(tempfile.mkdtemp(), "ffxivsetup.exe")

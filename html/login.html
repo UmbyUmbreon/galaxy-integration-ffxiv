@@ -5,56 +5,95 @@
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha256-YLGeXaapI0/5IgZopewRJcFXomhRMlYYjugPLSyNjTY=" crossorigin="anonymous">
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous">    
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha256-YLGeXaapI0/5IgZopewRJcFXomhRMlYYjugPLSyNjTY=" crossorigin="anonymous" />
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+        <script>
+            (function($) {
+                $(document).ready(function() {       
+                    $.ajax({
+                        url: "https://xivapi.com/servers",
+                        method: "GET",
+                        dataType: "json",
+                        data: {}
+                    })
+                    .done(function(servers) {
+                    var serverDdl = $("#server");
+                    $.each(servers, function() {
+                        serverDdl.append($("<option />").val(this).text(this));
+                    })
+                    serverDdl.removeAttr("disabled");
+                    });
+                });
+            })(jQuery);
+        </script>
         <style>
             html, body {
-                height: 100%; 
-            }
-
-            form.in-the-middle {
                 height: 100%;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                overflow: auto; 
+                padding-top:10px;
             }
 
-            form.in-the-middle > .card {
-                margin: 0 auto;
-                max-width: 850px;
-                width: calc(100vw - 40px); 
+            .card {
+                max-width: calc(100% - 40px)
             }
         </style>
     </head>
     <body>
-        <form class="in-the-middle" action="/login" method="POST" role="form">
-            <div class="card">
-                <h3 class="card-header">
-                    <i class="fa fa-user-circle"></i>
-                    Insert your Lodestone character ID
-                </h3>
-                <div class="card-block">
-                    <div class="row">
-                        <div class="col offset-sm-2">
-                            Please enter your Lodestone character ID which you can receive from <a href="https://finalfantasyxiv.com/lodestone/" target="_blank">finalfantasyxiv.com/lodestone</a> character profile page.
-                        </div>
+        
+        <div class="card mx-auto">
+            <form action="/login_charsearch" method="POST" role="form">
+            <h3 class="card-header">
+                <i class="fa fa-user-circle"></i>
+                Enter your character's full name and home world
+            </h3>
+            <div class="card-block">
+                <div class="form-row">
+                    <div class="col-sm-6 form-group">
+                        <label for="character_name">Name</label>
+                        <input type="text" class="form-control" name="character_name" id="character_name" placeholder="Tataru Taru" />
                     </div>
-
-                    <div class="form-group row">
-                        <label class="col-sm-2 col-form-label text-right">Character ID</label>
-                        <div class="col-sm-10">
-                            <input class="form-control form-control-success" name="character_id" id="character_id" placeholder="123456789">
-                        </div>
+                    <div class="col-sm-6 form-group">
+                        <label for="server">Server</label>
+                        <select id="server" name="server" class="form-control" disabled>
+                        </select>
                     </div>
-
-                    <div class="row">
-                        <div class="col offset-sm-2">
-                            <button type="submit" class="btn btn-success">Save</button>
-                        </div>
+                </div>
+                <div class="row">
+                    <div class="col offset-sm-2">
+                        <button type="submit" class="btn btn-success">Save</button>
                     </div>
                 </div>
             </div>
-        </form>
+            </form>
+        </div>
+        <h4 style="text-align:center">OR</h4>
+        <div class="card in-the-middle mx-auto">
+            <form action="/login" method="POST" role="form">
+            <h3 class="card-header">
+                <i class="fa fa-user-circle"></i>
+                Insert your Lodestone character ID
+            </h3>
+            <div class="card-block">
+                <div class="row">
+                    <div class="col offset-sm-2">
+                        Please enter your Lodestone character ID which you can receive from <a href="https://finalfantasyxiv.com/lodestone/" target="_blank">finalfantasyxiv.com/lodestone</a> character profile page.
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <label class="col-sm-2 col-form-label text-right">Character ID</label>
+                    <div class="col-sm-10">
+                        <input class="form-control form-control-success" name="character_id" id="character_id" placeholder="123456789">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col offset-sm-2">
+                        <button type="submit" class="btn btn-success">Save</button>
+                    </div>
+                </div>
+            </div>
+            </form>
+        </div>
     </body>
 </html>
