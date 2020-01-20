@@ -210,7 +210,7 @@ class FFXIVAPI(object):
 
         return FFXIVAuthorizationResult.FINISHED
 
-    def do_auth_character_by_name_and_server(self, name : str, server : str):
+    def do_auth_character_by_name_and_server(self, name: str, server: str):
         (status_code, account_info) = self.__api_get_character_by_name_and_server(name, server)
 
         if account_info is None:
@@ -241,18 +241,18 @@ class FFXIVAPI(object):
 
         return (resp.status_code, result)
 
-    def __api_get_character_by_name_and_server(self, name :str, server: str):
+    def __api_get_character_by_name_and_server(self, name:str, server: str):
         resp = requests.get(f"{self.API_DOMAIN}{self.API_URL_CHARACTER}search", params={'name': name, 'server': server})
 
         try:
             result = json.loads(resp.text)
             characters = result.get('Results', [])
-            if len(characters) >= 1:
+            if len(characters) == 1:
                 return self.__api_get_account_info(str(characters[0].get('ID', '')))
-            else:
-                return None
         except Exception:
             logging.error('ffxivapi/__api_get_character_by_name_and_server: %s' % resp.text)
+
+        return None
 
     def get_installer(self):
         installer_path = os.path.join(tempfile.mkdtemp(), "ffxivsetup.exe")
