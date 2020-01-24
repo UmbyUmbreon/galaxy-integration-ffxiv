@@ -16,7 +16,7 @@ from modules.galaxy.api.plugin import Plugin, create_and_run_plugin
 from modules.galaxy.api.types import Achievement, Authentication, NextStep, Dlc, LicenseInfo, Game, GameTime, LocalGame, FriendInfo
 
 class FinalFantasyXIVPlugin(Plugin):
-    SLEEP_CHECK_STATUS = 5
+    SLEEP_CHECK_STATUS = 10
     SLEEP_CHECK_RUNNING_ITER = 0.01
 
     def __init__(self, reader, writer, token):
@@ -32,6 +32,14 @@ class FinalFantasyXIVPlugin(Plugin):
             self._check_statuses_task = asyncio.create_task(self._check_statuses())
 
     async def _check_statuses(self):
+        running_count = len([x for x in self._cached_game_statuses.values() if LocalGameState.Running in x])
+        if len(self._cached_game_statuses) > 0 and running_count == 0:
+            logging.debug(f'Skipping status check -- Local game count is {len(self._cached_game_statuses)}'
+                          f' and running count is {running_count}')
+            await asyncio.sleep(self.SLEEP_CHECK_STATUS)
+            return
+
+        logging.debug('Running status check')
         local_games = await self.get_local_games()
 
         if local_games:
@@ -150,6 +158,7 @@ class FinalFantasyXIVPlugin(Plugin):
             return
 
         self._game_instances[0].run_game()
+        self._cached_game_statuses[game_id] = LocalGameState.Installed | LocalGameState.Running
         self.update_local_game_status(LocalGame(game_id, LocalGameState.Installed | LocalGameState.Running))
 
     async def install_game(self, game_id: str):
