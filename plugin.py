@@ -16,24 +16,28 @@ from modules.galaxy.api.plugin import Plugin, create_and_run_plugin
 from modules.galaxy.api.types import Achievement, Authentication, NextStep, Dlc, LicenseInfo, Game, GameTime, LocalGame, FriendInfo
 
 class FinalFantasyXIVPlugin(Plugin):
-    SLEEP_CHECK_STATUS = 10
+    SLEEP_CHECK_STATUS = 5
     SLEEP_CHECK_RUNNING_ITER = 0.01
+    CHECK_STATUS_RETRY_COUNT = 3
 
     def __init__(self, reader, writer, token):
         super().__init__(Platform.FinalFantasy14, __version__, reader, writer, token)
         self._ffxiv_api = FFXIVAPI()
         self._game_instances = None
-        self._task_check_for_running  = None
+        self._task_check_for_running = None
         self._check_statuses_task = None
         self._cached_game_statuses = {}
+        self.check_status_retries = 0
 
     def tick(self):
         if self._check_statuses_task is None or self._check_statuses_task.done():
             self._check_statuses_task = asyncio.create_task(self._check_statuses())
 
     async def _check_statuses(self):
+        found_running_game = False
         running_count = len([x for x in self._cached_game_statuses.values() if LocalGameState.Running in x])
-        if len(self._cached_game_statuses) > 0 and running_count == 0:
+        if (len(self._cached_game_statuses) > 0 and running_count == 0 and
+                self.check_status_retries >= self.CHECK_STATUS_RETRY_COUNT):
             logging.debug(f'Skipping status check -- Local game count is {len(self._cached_game_statuses)}'
                           f' and running count is {running_count}')
             await asyncio.sleep(self.SLEEP_CHECK_STATUS)
@@ -45,13 +49,23 @@ class FinalFantasyXIVPlugin(Plugin):
         if local_games:
             for game in local_games:
                 game.local_game_state = await self._is_running()
+                if LocalGameState.Running in game.local_game_state:
+                    found_running_game = True
                 if game.local_game_state == self._cached_game_statuses.get(game.game_id):
                     continue
                 self.update_local_game_status(LocalGame(game.game_id, game.local_game_state))
                 self._cached_game_statuses[game.game_id] = game.local_game_state
+            # Let the plugin retry a couple of times to find a running instance before stopping
+            if found_running_game:
+                self.check_status_retries = 0
+            else:
+                self.check_status_retries += 1
+                logging.debug(f'Did not find running game on attempt #{self.check_status_retries}')
         else:
             self.update_local_game_status(LocalGame("final_fantasy_xiv_shadowbringers", LocalGameState.None_))
             self._cached_game_statuses["final_fantasy_xiv_shadowbringers"] = LocalGameState.None_
+            # Prevent the plugin from running status checks if the game is uninstalled
+            self.check_status_retries = self.CHECK_STATUS_RETRY_COUNT
 
         await asyncio.sleep(self.SLEEP_CHECK_STATUS)
 
