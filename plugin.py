@@ -3,7 +3,6 @@ import sys
 import asyncio
 import logging
 import subprocess
-import modules.psutil as psutil
 import ffxiv_localgame
 import ffxiv_tools
 
@@ -14,6 +13,7 @@ from modules.galaxy.api.errors import BackendError, InvalidCredentials
 from modules.galaxy.api.consts import Platform, LicenseType, LocalGameState
 from modules.galaxy.api.plugin import Plugin, create_and_run_plugin
 from modules.galaxy.api.types import Achievement, Authentication, NextStep, Dlc, LicenseInfo, Game, GameTime, LocalGame, FriendInfo
+from modules.galaxy.proc_tools import process_iter
 
 class FinalFantasyXIVPlugin(Plugin):
     SLEEP_CHECK_STATUS = 5
@@ -211,13 +211,14 @@ class FinalFantasyXIVPlugin(Plugin):
 
         running = False
 
-        for process in psutil.process_iter():
-            try:
-                if process.name().lower() in target_exes:
+        for process in process_iter():
+            if process.binary_path is None:
+                continue
+
+            for target_exe in target_exes:
+                if process.binary_path.lower().endswith(target_exe.lower()):
                     running = True
                     break
-            except (psutil.AccessDenied, psutil.NoSuchProcess):
-                continue
 
             await asyncio.sleep(self.SLEEP_CHECK_RUNNING_ITER)
 
